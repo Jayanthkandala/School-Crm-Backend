@@ -1,0 +1,3731 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "School CRM API Documentation",
+    "version": "1.0.0",
+    "description": "Complete API documentation for School CRM SaaS Platform",
+    "contact": {
+      "name": "API Support",
+      "email": "support@schoolcrm.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api/v1",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.schoolcrm.com/api/v1",
+      "description": "Production server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "example": "Error message"
+          }
+        }
+      },
+      "Student": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "admissionNumber": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "classId": {
+            "type": "string"
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "MALE",
+              "FEMALE",
+              "OTHER"
+            ]
+          },
+          "aadhaarNumber": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "GENERAL",
+              "OBC",
+              "SC",
+              "ST",
+              "EWS"
+            ]
+          },
+          "admissionDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "ALUMNI"
+            ]
+          }
+        }
+      },
+      "Teacher": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "employeeId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "qualification": {
+            "type": "string"
+          },
+          "specialization": {
+            "type": "string"
+          },
+          "experience": {
+            "type": "number"
+          },
+          "joiningDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "salary": {
+            "type": "number"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FeeInvoice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "invoiceNumber": {
+            "type": "string"
+          },
+          "studentId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "lateFee": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PARTIAL",
+              "PAID",
+              "OVERDUE"
+            ]
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/platform/login": {
+      "post": {
+        "summary": "Platform user login (CRM Owner/Staff)",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "owner@yourcrm.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "SecurePassword123!"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/auth/school/login": {
+      "post": {
+        "summary": "School user login",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password",
+                  "subdomain"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "subdomain": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          }
+        }
+      }
+    },
+    "/auth/platform/register": {
+      "post": {
+        "summary": "Register platform user (Owner only)",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fullName",
+                  "email",
+                  "password",
+                  "role"
+                ],
+                "properties": {
+                  "fullName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "OWNER",
+                      "ADMIN",
+                      "SUPPORT",
+                      "SALES",
+                      "FINANCE",
+                      "DEVELOPER"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered"
+          }
+        }
+      }
+    },
+    "/common/upload/single": {
+      "post": {
+        "summary": "Upload single file",
+        "tags": [
+          "Common - Upload"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File uploaded successfully"
+          }
+        }
+      }
+    },
+    "/common/upload/multiple": {
+      "post": {
+        "summary": "Upload multiple files",
+        "tags": [
+          "Common - Upload"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Files uploaded successfully"
+          }
+        }
+      }
+    },
+    "/common/upload/{fileId}": {
+      "delete": {
+        "summary": "Delete file",
+        "tags": [
+          "Common - Upload"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fileId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File deleted successfully"
+          }
+        }
+      }
+    },
+    "/parent/dashboard": {
+      "get": {
+        "summary": "Get parent dashboard",
+        "tags": [
+          "Parent Portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Parent dashboard data"
+          }
+        }
+      }
+    },
+    "/parent/children": {
+      "get": {
+        "summary": "Get all children",
+        "tags": [
+          "Parent Portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of children"
+          }
+        }
+      }
+    },
+    "/parent/children/{childId}/attendance": {
+      "get": {
+        "summary": "Get child's attendance",
+        "tags": [
+          "Parent Portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "childId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "month",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Child's attendance"
+          }
+        }
+      }
+    },
+    "/parent/children/{childId}/leave/apply": {
+      "post": {
+        "summary": "Apply leave for child",
+        "tags": [
+          "Parent Portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "childId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fromDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "toDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Leave applied successfully"
+          }
+        }
+      }
+    },
+    "/platform/schools": {
+      "get": {
+        "summary": "Get all schools",
+        "tags": [
+          "Platform - Schools"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "TRIAL",
+                "SUSPENDED",
+                "CANCELLED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of schools"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new school",
+        "tags": [
+          "Platform - Schools"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "schoolName",
+                  "subdomain",
+                  "adminName",
+                  "adminEmail",
+                  "adminPhone"
+                ],
+                "properties": {
+                  "schoolName": {
+                    "type": "string"
+                  },
+                  "subdomain": {
+                    "type": "string"
+                  },
+                  "adminName": {
+                    "type": "string"
+                  },
+                  "adminEmail": {
+                    "type": "string"
+                  },
+                  "adminPhone": {
+                    "type": "string"
+                  },
+                  "subscriptionPlanId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "School created"
+          }
+        }
+      }
+    },
+    "/platform/schools/{id}": {
+      "get": {
+        "summary": "Get school by ID",
+        "tags": [
+          "Platform - Schools"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "School details"
+          },
+          "404": {
+            "description": "School not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update school",
+        "tags": [
+          "Platform - Schools"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "School updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete school",
+        "tags": [
+          "Platform - Schools"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "School deleted"
+          }
+        }
+      }
+    },
+    "/platform/schools/{id}/suspend": {
+      "post": {
+        "summary": "Suspend school",
+        "tags": [
+          "Platform - Schools"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "School suspended"
+          }
+        }
+      }
+    },
+    "/platform/schools/{id}/activate": {
+      "post": {
+        "summary": "Activate school",
+        "tags": [
+          "Platform - Schools"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "School activated"
+          }
+        }
+      }
+    },
+    "/platform/analytics": {
+      "get": {
+        "summary": "Get platform analytics",
+        "tags": [
+          "Platform - Analytics"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Platform analytics"
+          }
+        }
+      }
+    },
+    "/platform/subscription-plans": {
+      "get": {
+        "summary": "Get all subscription plans",
+        "tags": [
+          "Platform - Subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of subscription plans"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create subscription plan",
+        "tags": [
+          "Platform - Subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Plan created"
+          }
+        }
+      }
+    },
+    "/platform/subscription-plans/{id}": {
+      "put": {
+        "summary": "Update subscription plan",
+        "tags": [
+          "Platform - Subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Plan updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete subscription plan",
+        "tags": [
+          "Platform - Subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan deleted"
+          }
+        }
+      }
+    },
+    "/platform/support/tickets": {
+      "post": {
+        "summary": "Create support ticket (School users)",
+        "tags": [
+          "Platform - Support"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "subject",
+                  "description",
+                  "category"
+                ],
+                "properties": {
+                  "subject": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "LOW",
+                      "MEDIUM",
+                      "HIGH",
+                      "URGENT"
+                    ]
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "TECHNICAL",
+                      "BILLING",
+                      "FEATURE_REQUEST",
+                      "BUG",
+                      "GENERAL"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ticket created"
+          }
+        }
+      },
+      "get": {
+        "summary": "Get all support tickets",
+        "tags": [
+          "Platform - Support"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "priority",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tickets"
+          }
+        }
+      }
+    },
+    "/school/accountant/dashboard": {
+      "get": {
+        "summary": "Get accountant dashboard",
+        "tags": [
+          "School - Accountant"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard data"
+          }
+        }
+      }
+    },
+    "/school/admissions/apply": {
+      "post": {
+        "summary": "Submit admission application (Public)",
+        "tags": [
+          "School - Admissions"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "studentName",
+                  "dateOfBirth",
+                  "gender",
+                  "classAppliedFor",
+                  "phone"
+                ],
+                "properties": {
+                  "studentName": {
+                    "type": "string"
+                  },
+                  "dateOfBirth": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "enum": [
+                      "MALE",
+                      "FEMALE",
+                      "OTHER"
+                    ]
+                  },
+                  "classAppliedFor": {
+                    "type": "string"
+                  },
+                  "fatherName": {
+                    "type": "string"
+                  },
+                  "motherName": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "aadhaarNumber": {
+                    "type": "string",
+                    "description": "Aadhaar number (India)"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "GENERAL",
+                      "OBC",
+                      "SC",
+                      "ST",
+                      "EWS"
+                    ],
+                    "description": "Category (India)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Application submitted"
+          }
+        }
+      }
+    },
+    "/school/admissions": {
+      "get": {
+        "summary": "Get all admission applications",
+        "tags": [
+          "School - Admissions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "APPROVED",
+                "REJECTED"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "academicYear",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of applications"
+          }
+        }
+      }
+    },
+    "/school/assignments": {
+      "get": {
+        "summary": "Get all assignments",
+        "tags": [
+          "School - Assignments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "classId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subjectId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of assignments"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new assignment",
+        "tags": [
+          "School - Assignments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "classId",
+                  "subjectId",
+                  "dueDate"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "classId": {
+                    "type": "string"
+                  },
+                  "subjectId": {
+                    "type": "string"
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "maxMarks": {
+                    "type": "integer"
+                  },
+                  "attachmentUrl": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Assignment created"
+          }
+        }
+      }
+    },
+    "/school/attendance/mark": {
+      "post": {
+        "summary": "Mark attendance for a class",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "classId": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "attendance": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "studentId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PRESENT",
+                            "ABSENT",
+                            "LATE",
+                            "HALF_DAY",
+                            "ON_LEAVE"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Attendance marked"
+          }
+        }
+      }
+    },
+    "/school/attendance/daily": {
+      "get": {
+        "summary": "Get daily attendance for a class",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "classId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daily attendance"
+          }
+        }
+      }
+    },
+    "/school/attendance/student/{studentId}/monthly": {
+      "get": {
+        "summary": "Get monthly attendance for a student",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "studentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "month",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student monthly attendance"
+          }
+        }
+      }
+    },
+    "/school/attendance/class/monthly": {
+      "get": {
+        "summary": "Get class monthly attendance",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "classId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "month",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Class monthly attendance"
+          }
+        }
+      }
+    },
+    "/school/attendance/defaulters": {
+      "get": {
+        "summary": "Get attendance defaulters",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "threshold",
+            "schema": {
+              "type": "integer",
+              "default": 75
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of defaulters"
+          }
+        }
+      }
+    },
+    "/school/attendance/leave/request": {
+      "post": {
+        "summary": "Submit leave request",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "studentId": {
+                    "type": "string"
+                  },
+                  "fromDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "toDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Leave request submitted"
+          }
+        }
+      }
+    },
+    "/school/attendance/leave/{id}/status": {
+      "put": {
+        "summary": "Approve/Reject leave request",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "APPROVED",
+                      "REJECTED"
+                    ]
+                  },
+                  "remarks": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Leave request updated"
+          }
+        }
+      }
+    },
+    "/school/attendance/leave": {
+      "get": {
+        "summary": "Get all leave requests",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "APPROVED",
+                "REJECTED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of leave requests"
+          }
+        }
+      }
+    },
+    "/school/attendance/report": {
+      "get": {
+        "summary": "Get attendance report",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "classId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fromDate",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "toDate",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "pdf",
+                "excel"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attendance report"
+          }
+        }
+      }
+    },
+    "/school/attendance/notifications/send": {
+      "post": {
+        "summary": "Send attendance notifications",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "classId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notifications sent"
+          }
+        }
+      }
+    },
+    "/school/attendance/stats": {
+      "get": {
+        "summary": "Get attendance statistics",
+        "tags": [
+          "School - Attendance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attendance statistics"
+          }
+        }
+      }
+    },
+    "/school/request": {
+      "post": {
+        "summary": "Create request",
+        "tags": [
+          "School - Certificates"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/generate": {
+      "post": {
+        "summary": "Create generate",
+        "tags": [
+          "School - Certificates"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/verify/:verificationCode": {
+      "get": {
+        "summary": "Get verify by ID",
+        "tags": [
+          "School - Certificates"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/classes": {
+      "get": {
+        "summary": "Get all classes",
+        "tags": [
+          "School - Classes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of classes"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new class",
+        "tags": [
+          "School - Classes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Class created"
+          }
+        }
+      }
+    },
+    "/school/classes/{id}": {
+      "put": {
+        "summary": "Update class",
+        "tags": [
+          "School - Classes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Class updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete class",
+        "tags": [
+          "School - Classes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Class deleted"
+          }
+        }
+      }
+    },
+    "/school/classes/{classId}/subjects": {
+      "get": {
+        "summary": "Get subjects for a class",
+        "tags": [
+          "School - Classes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "classId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of subjects"
+          }
+        }
+      }
+    },
+    "/school/class-subjects/assign": {
+      "post": {
+        "summary": "Assign subject to class",
+        "tags": [
+          "School - Classes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subject assigned to class"
+          }
+        }
+      }
+    },
+    "/school/announcements": {
+      "get": {
+        "summary": "Get all announcements",
+        "tags": [
+          "School - Communication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/announcements/:id/publish": {
+      "post": {
+        "summary": "Create announcements",
+        "tags": [
+          "School - Communication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/events": {
+      "get": {
+        "summary": "Get all events",
+        "tags": [
+          "School - Communication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/messages/send": {
+      "post": {
+        "summary": "Create messages",
+        "tags": [
+          "School - Communication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/messages/bulk": {
+      "post": {
+        "summary": "Create messages",
+        "tags": [
+          "School - Communication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/overview": {
+      "get": {
+        "summary": "Get all overview",
+        "tags": [
+          "School - Dashboard"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/stats": {
+      "get": {
+        "summary": "Get all stats",
+        "tags": [
+          "School - Transport"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/charts": {
+      "get": {
+        "summary": "Get all charts",
+        "tags": [
+          "School - Dashboard"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/recent-activities": {
+      "get": {
+        "summary": "Get all recent-activities",
+        "tags": [
+          "School - Dashboard"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/exams": {
+      "get": {
+        "summary": "Get all exams",
+        "tags": [
+          "School - Exams"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "classId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "academicYear",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "examType",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of exams"
+          }
+        }
+      }
+    },
+    "/school/exams/grades/enter": {
+      "post": {
+        "summary": "Enter grades for exam",
+        "tags": [
+          "School - Exams"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "examId": {
+                    "type": "string"
+                  },
+                  "subjectId": {
+                    "type": "string"
+                  },
+                  "grades": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Grades entered"
+          }
+        }
+      }
+    },
+    "/school/structures": {
+      "get": {
+        "summary": "Get all structures",
+        "tags": [
+          "School - Fees"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create structures",
+        "tags": [
+          "School - Fees"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/invoices/generate": {
+      "post": {
+        "summary": "Create invoices",
+        "tags": [
+          "School - Fees"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/student/:studentId/invoices": {
+      "get": {
+        "summary": "Get student by ID",
+        "tags": [
+          "School - Fees"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/payments/online": {
+      "post": {
+        "summary": "Create payments",
+        "tags": [
+          "School - Fees"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/reminders/send": {
+      "post": {
+        "summary": "Create reminders",
+        "tags": [
+          "School - Fees"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/collection-report": {
+      "get": {
+        "summary": "Get all collection-report",
+        "tags": [
+          "School - Fees"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/books": {
+      "get": {
+        "summary": "Get all books",
+        "tags": [
+          "School - Library"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create books",
+        "tags": [
+          "School - Library"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/books/:id": {
+      "put": {
+        "summary": "Update books",
+        "tags": [
+          "School - Library"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete books",
+        "tags": [
+          "School - Library"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/issue": {
+      "post": {
+        "summary": "Create issue",
+        "tags": [
+          "School - Library"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/return/:transactionId": {
+      "post": {
+        "summary": "Create return",
+        "tags": [
+          "School - Library"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/renew/:transactionId": {
+      "post": {
+        "summary": "Create renew",
+        "tags": [
+          "School - Library"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/reserve": {
+      "post": {
+        "summary": "Create reserve",
+        "tags": [
+          "School - Library"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/student/:studentId/history": {
+      "get": {
+        "summary": "Get student by ID",
+        "tags": [
+          "School - Library"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/parents": {
+      "get": {
+        "summary": "Get all parents",
+        "tags": [
+          "School - Parent Management"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of parents"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new parent",
+        "tags": [
+          "School - Parent Management"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fullName",
+                  "phone",
+                  "relationship"
+                ],
+                "properties": {
+                  "fullName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "relationship": {
+                    "type": "string",
+                    "enum": [
+                      "FATHER",
+                      "MOTHER",
+                      "GUARDIAN"
+                    ]
+                  },
+                  "occupation": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Parent created"
+          }
+        }
+      }
+    },
+    "/school/students": {
+      "get": {
+        "summary": "Get all students",
+        "tags": [
+          "School - Students"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of students"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "classId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "section",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "GRADUATED",
+                "TRANSFERRED",
+                "DROPPED"
+              ]
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create new student (Admission)",
+        "tags": [
+          "School - Students"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "admissionNumber",
+                  "firstName",
+                  "lastName",
+                  "dateOfBirth",
+                  "gender"
+                ],
+                "properties": {
+                  "admissionNumber": {
+                    "type": "string"
+                  },
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "dateOfBirth": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "enum": [
+                      "MALE",
+                      "FEMALE",
+                      "OTHER"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Student created"
+          }
+        }
+      }
+    },
+    "/school/attendance": {
+      "get": {
+        "summary": "Get all attendance",
+        "tags": [
+          "School - Reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/academic": {
+      "get": {
+        "summary": "Get all academic",
+        "tags": [
+          "School - Reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/fees": {
+      "get": {
+        "summary": "Get all fees",
+        "tags": [
+          "School - Reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/teachers": {
+      "get": {
+        "summary": "Get all teachers",
+        "tags": [
+          "School - Teachers"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of teachers"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "ON_LEAVE",
+                "RESIGNED"
+              ]
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create new teacher",
+        "tags": [
+          "School - Teachers"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "employeeId",
+                  "fullName",
+                  "email",
+                  "joiningDate"
+                ],
+                "properties": {
+                  "employeeId": {
+                    "type": "string"
+                  },
+                  "fullName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "joiningDate": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Teacher created"
+          }
+        }
+      }
+    },
+    "/school/dashboard/analytics": {
+      "get": {
+        "summary": "Get all dashboard",
+        "tags": [
+          "School - Reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/settings": {
+      "get": {
+        "summary": "Get school settings",
+        "tags": [
+          "School - Settings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "School settings"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update school settings",
+        "tags": [
+          "School - Settings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "schoolName": {
+                    "type": "string"
+                  },
+                  "logo": {
+                    "type": "string"
+                  },
+                  "primaryColor": {
+                    "type": "string"
+                  },
+                  "secondaryColor": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settings updated"
+          }
+        }
+      }
+    },
+    "/school/students/stats": {
+      "get": {
+        "summary": "Get student statistics",
+        "tags": [
+          "School - Students"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student statistics"
+          }
+        }
+      }
+    },
+    "/school/students/{id}": {
+      "get": {
+        "summary": "Get student by ID",
+        "tags": [
+          "School - Students"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student details"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update student",
+        "tags": [
+          "School - Students"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete student",
+        "tags": [
+          "School - Students"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student deleted"
+          }
+        }
+      }
+    },
+    "/school/students/bulk/import": {
+      "post": {
+        "summary": "Bulk import students",
+        "tags": [
+          "School - Students"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "students": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Import results"
+          }
+        }
+      }
+    },
+    "/school/students/promote": {
+      "post": {
+        "summary": "Promote students to next class",
+        "tags": [
+          "School - Students"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentClassId": {
+                    "type": "string"
+                  },
+                  "targetClassId": {
+                    "type": "string"
+                  },
+                  "studentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Students promoted"
+          }
+        }
+      }
+    },
+    "/school/students/{id}/transfer": {
+      "post": {
+        "summary": "Transfer student",
+        "tags": [
+          "School - Students"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student transferred"
+          }
+        }
+      }
+    },
+    "/school/students/id-cards/generate": {
+      "post": {
+        "summary": "Generate student ID cards",
+        "tags": [
+          "School - Students"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "studentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ID cards generated"
+          }
+        }
+      }
+    },
+    "/school/teachers/stats": {
+      "get": {
+        "summary": "Get teacher statistics",
+        "tags": [
+          "School - Teachers"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teacher statistics"
+          }
+        }
+      }
+    },
+    "/school/teachers/{id}": {
+      "get": {
+        "summary": "Get teacher by ID",
+        "tags": [
+          "School - Teachers"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teacher details"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update teacher",
+        "tags": [
+          "School - Teachers"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teacher updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete teacher",
+        "tags": [
+          "School - Teachers"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teacher deleted"
+          }
+        }
+      }
+    },
+    "/school/teachers/{id}/assign-class": {
+      "post": {
+        "summary": "Assign teacher to class",
+        "tags": [
+          "School - Teachers"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "classId": {
+                    "type": "string"
+                  },
+                  "subjectId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Teacher assigned"
+          }
+        }
+      }
+    },
+    "/school/teachers/{id}/remove-class": {
+      "post": {
+        "summary": "Remove teacher from class",
+        "tags": [
+          "School - Teachers"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teacher removed"
+          }
+        }
+      }
+    },
+    "/school/teachers/{id}/timetable": {
+      "get": {
+        "summary": "Get teacher's timetable",
+        "tags": [
+          "School - Teachers"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teacher timetable"
+          }
+        }
+      }
+    },
+    "/school/teachers/bulk/import": {
+      "post": {
+        "summary": "Bulk import teachers",
+        "tags": [
+          "School - Teachers"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "teachers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Import results"
+          }
+        }
+      }
+    },
+    "/school/class/:classId": {
+      "get": {
+        "summary": "Get class by ID",
+        "tags": [
+          "School - Timetable"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/": {
+      "post": {
+        "summary": "Create resource",
+        "tags": [
+          "School - Timetable"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/:id": {
+      "put": {
+        "summary": "Update :id",
+        "tags": [
+          "School - Timetable"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete :id",
+        "tags": [
+          "School - Timetable"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/bulk": {
+      "post": {
+        "summary": "Create bulk",
+        "tags": [
+          "School - Timetable"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/routes": {
+      "get": {
+        "summary": "Get all routes",
+        "tags": [
+          "School - Transport"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create routes",
+        "tags": [
+          "School - Transport"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/routes/:id": {
+      "put": {
+        "summary": "Update routes",
+        "tags": [
+          "School - Transport"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete routes",
+        "tags": [
+          "School - Transport"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/assign": {
+      "post": {
+        "summary": "Create assign",
+        "tags": [
+          "School - Transport"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/routes/:routeId/students": {
+      "get": {
+        "summary": "Get routes by ID",
+        "tags": [
+          "School - Transport"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/school/users": {
+      "get": {
+        "summary": "Get all users in school",
+        "tags": [
+          "School - User Management"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "role",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of users"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new user",
+        "tags": [
+          "School - User Management"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fullName",
+                  "email",
+                  "role",
+                  "password"
+                ],
+                "properties": {
+                  "fullName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "SCHOOL_ADMIN",
+                      "PRINCIPAL",
+                      "TEACHER",
+                      "STUDENT",
+                      "PARENT",
+                      "ACCOUNTANT",
+                      "LIBRARIAN",
+                      "RECEPTIONIST"
+                    ]
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created"
+          }
+        }
+      }
+    },
+    "/school/users/{id}": {
+      "get": {
+        "summary": "Get user by ID",
+        "tags": [
+          "School - User Management"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details"
+          }
+        }
+      }
+    },
+    "/student/dashboard": {
+      "get": {
+        "summary": "Get student dashboard",
+        "tags": [
+          "Student Portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student dashboard data"
+          }
+        }
+      }
+    },
+    "/teacher/dashboard": {
+      "get": {
+        "summary": "Get teacher dashboard",
+        "tags": [
+          "Teacher Portal"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teacher dashboard data"
+          }
+        }
+      }
+    },
+    "/webhooks/payment/stripe": {
+      "post": {
+        "summary": "Stripe payment webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Receives payment notifications from Stripe",
+        "responses": {
+          "200": {
+            "description": "Webhook processed"
+          }
+        }
+      }
+    },
+    "/webhooks/payment/razorpay": {
+      "post": {
+        "summary": "Razorpay payment webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Receives payment notifications from Razorpay",
+        "responses": {
+          "200": {
+            "description": "Webhook processed"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Authentication and authorization endpoints"
+    }
+  ]
+}
