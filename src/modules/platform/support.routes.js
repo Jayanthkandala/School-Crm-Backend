@@ -82,11 +82,92 @@ router.post('/tickets/:id/respond', supportController.addResponse);
 router.put('/tickets/:id/status', supportController.changeStatus);
 router.post('/tickets/:id/close', supportController.closeTicket);
 router.delete('/tickets/:id', supportController.deleteTicket);
+/**
+ * @swagger
+ * /platform/support/tickets/{id}/escalate:
+ *   post:
+ *     summary: Escalate a ticket
+ *     tags: [Platform - Support]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               escalatedTo:
+ *                 type: string
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Ticket escalated
+ */
 router.post('/tickets/:id/escalate', supportController.escalateTicket);
+
+/**
+ * @swagger
+ * /platform/support/tickets/{id}/internal-note:
+ *   post:
+ *     summary: Add an internal note
+ *     tags: [Platform - Support]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [note]
+ *             properties:
+ *               note:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Note added
+ */
 router.post('/tickets/:id/internal-note', supportController.addInternalNote);
+
 router.post('/tickets/:id/rate', supportController.rateTicket);
 
 // Knowledge Base routes
+/**
+ * @swagger
+ * /platform/support/kb/articles:
+ *   get:
+ *     summary: Get knowledge base articles
+ *     tags: [Platform - Support KB]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *   post:
+ *     summary: Create KB article
+ *     tags: [Platform - Support KB]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, content, category]
+ *             properties:
+ *               title: { type: string }
+ *               content: { type: string }
+ *               category: { type: string }
+ *     responses:
+ *       201:
+ *         description: Article created
+ */
 router.get('/kb/articles', supportController.getAllArticles);
 router.get('/kb/articles/:id', supportController.getArticleById);
 router.post('/kb/articles', supportController.createArticle);
@@ -95,16 +176,64 @@ router.delete('/kb/articles/:id', supportController.deleteArticle);
 router.post('/kb/articles/:id/helpful', supportController.markArticleHelpful);
 
 // Template routes
+/**
+ * @swagger
+ * /platform/support/templates:
+ *   get:
+ *     summary: Get response templates
+ *     tags: [Platform - Support Templates]
+ *   post:
+ *     summary: Create response template
+ *     tags: [Platform - Support Templates]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, content]
+ *             properties:
+ *               name: { type: string }
+ *               content: { type: string }
+ *     responses:
+ *       201:
+ *         description: Template created
+ */
 router.get('/templates', supportController.getAllTemplates);
 router.post('/templates', supportController.createTemplate);
 router.put('/templates/:id', supportController.updateTemplate);
 router.delete('/templates/:id', supportController.deleteTemplate);
 
 // SLA routes
+/**
+ * @swagger
+ * /platform/support/sla/policies:
+ *   get:
+ *     summary: Get SLA policies
+ *     tags: [Platform - Support SLA]
+ *   post:
+ *     summary: Create SLA policy
+ *     tags: [Platform - Support SLA]
+ *     responses:
+ *       201:
+ *         description: Policy created
+ */
 router.get('/sla/policies', supportController.getAllSLAPolicies);
 router.post('/sla/policies', supportController.createSLAPolicy);
 
 // Support Settings
+/**
+ * @swagger
+ * /platform/support/settings:
+ *   get:
+ *     summary: Get support settings
+ *     tags: [Platform - Support Settings]
+ *   put:
+ *     summary: Update support settings
+ *     tags: [Platform - Support Settings]
+ *     responses:
+ *       200:
+ *         description: Settings updated
+ */
 router.get('/settings', supportController.getSupportSettings);
 router.put('/settings', supportController.updateSupportSettings);
 

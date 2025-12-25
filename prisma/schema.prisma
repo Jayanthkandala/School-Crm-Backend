@@ -31,6 +31,7 @@ model PlatformUser {
 
   assignedTickets SupportTicket[] @relation("AssignedTickets")
   auditLogs       PlatformAuditLog[]
+  articles        KnowledgeBaseArticle[]
 
   @@map("platform_users")
 }
@@ -244,6 +245,15 @@ model SupportTicket {
   
   messages          Json?
   attachments       Json?
+  internalNotes     Json?    @map("internal_notes")
+  
+  // Escalation & Satisfaction
+  escalated         Boolean  @default(false)
+  escalatedAt       DateTime? @map("escalated_at")
+  escalatedTo       String?  @map("escalated_to")
+  
+  satisfactionRating Int?    @map("satisfaction_rating")
+  satisfactionComment String? @map("satisfaction_comment")
   
   resolvedAt        DateTime? @map("resolved_at")
   createdAt         DateTime @default(now()) @map("created_at")
@@ -253,6 +263,50 @@ model SupportTicket {
   assignedTo        PlatformUser? @relation("AssignedTickets", fields: [assignedToUserId], references: [id])
 
   @@map("support_tickets")
+}
+
+model SupportTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  content     String   @db.Text
+  category    String?
+  createdBy   String?  @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("support_templates")
+}
+
+model KnowledgeBaseArticle {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   @db.Text
+  category    String
+  tags        String[]
+  published   Boolean  @default(false)
+  views       Int      @default(0)
+  authorId    String?  @map("author_id")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  author      PlatformUser? @relation(fields: [authorId], references: [id])
+
+  @@map("knowledge_base_articles")
+}
+
+model SLAPolicy {
+  id            String   @id @default(uuid())
+  priority      TicketPriority @unique
+  responseTime  Int      @map("response_time") // in minutes
+  resolutionTime Int     @map("resolution_time") // in minutes
+  description   String?
+  isActive      Boolean  @default(true) @map("is_active")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("sla_policies")
 }
 
 enum TicketCategory {
