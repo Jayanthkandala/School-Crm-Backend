@@ -13,6 +13,17 @@ const createAssignment = async (req, res) => {
             if (teacherProfile) assignedTeacherId = teacherProfile.id;
         }
 
+        // If still no teacher (e.g., Admin creating), try to assign to Class Teacher
+        if (!assignedTeacherId) {
+            const classInfo = await tenantDb.class.findUnique({
+                where: { id: classId },
+                select: { classTeacherId: true }
+            });
+            if (classInfo && classInfo.classTeacherId) {
+                assignedTeacherId = classInfo.classTeacherId;
+            }
+        }
+
         if (!assignedTeacherId) {
             return res.status(400).json({ success: false, message: 'Teacher ID is required' });
         }

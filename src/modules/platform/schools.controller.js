@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('.prisma/client-platform');
 const { hashPassword } = require('../../utils/encryption.util');
 const { generateRandomToken } = require('../../utils/encryption.util');
 
@@ -74,7 +74,8 @@ const createSchool = async (req, res) => {
         const tempPassword = adminPassword || generateRandomToken(10);
 
         // Create School in Platform DB
-        const school = await prisma.school.create({
+        // We create it first to get the auto-increment sequenceId
+        let school = await prisma.school.create({
             data: {
                 schoolName,
                 subdomain: subdomain.toLowerCase(),
@@ -89,20 +90,40 @@ const createSchool = async (req, res) => {
                 country,
                 pinCode,
                 trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days trial
-                dbName: `school_${subdomain.toLowerCase()}`, // Virtual DB name (schema based)
-                dbSchema: `school_${subdomain.toLowerCase()}_${generateRandomToken(4)}` // Unique schema name
+                dbName: `school_${subdomain.toLowerCase()}`, // Temporary, will update
+                dbSchema: 'public' // Separate DB means we use public schema
             },
             include: {
                 subscriptionPlan: true
             }
         });
 
-        console.log('✅ School created in Platform DB:', school.id);
+        // Generate sequential Tenant ID (e.g. SCH-0001)
+        const tenantId = `SCH-${String(school.sequenceId).padStart(4, '0')}`;
+        const databaseName = `school_${tenantId.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+
+        console.log(`🆔 Generated Tenant ID: ${tenantId}`);
+        console.log(`💾 Target Database: ${databaseName}`);
+
+        // Update school with generated ID and correct DB name
+        school = await prisma.school.update({
+            where: { id: school.id },
+            data: {
+                tenantId: tenantId,
+                dbName: databaseName
+            },
+            include: {
+                subscriptionPlan: true
+            }
+        });
+
+        console.log('✅ School record updated with Tenant ID:', school.id);
 
         // 🆕 Automatically provision tenant database with schema and initial data
         console.log('🏗️  Provisioning tenant database...');
         const { createTenantDatabase } = require('../../utils/tenantProvisioning');
-        const provisionResult = await createTenantDatabase(school.subdomain, school.schoolName);
+        // Pass the formatted tenantId so DB is named school_sch0001
+        const provisionResult = await createTenantDatabase(tenantId, school.schoolName);
 
         if (!provisionResult.success) {
             console.error('⚠️  Tenant database provisioning failed:', provisionResult.message);
@@ -118,9 +139,9 @@ const createSchool = async (req, res) => {
             console.log('🔑 Password (plain):', tempPassword);
 
             // Ensure schema exists before connecting (fallback if provisioning failed)
-            await ensureTenantSchema(school.id);
+            await ensureTenantSchema(tenantId);
 
-            const tenantDb = getTenantPrismaClient(school.id);
+            const tenantDb = getTenantPrismaClient(tenantId);
             const hashedPassword = await hashPassword(tempPassword);
 
             console.log('🔒 Password hashed successfully');

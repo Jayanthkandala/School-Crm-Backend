@@ -165,6 +165,19 @@ exports.Prisma.TeacherScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.TeacherResourceScalarFieldEnum = {
+  id: 'id',
+  teacherId: 'teacherId',
+  fileName: 'fileName',
+  fileType: 'fileType',
+  fileSize: 'fileSize',
+  fileUrl: 'fileUrl',
+  description: 'description',
+  category: 'category',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.StudentScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1400,6 +1413,7 @@ exports.GrievanceStatus = exports.$Enums.GrievanceStatus = {
 exports.Prisma.ModelName = {
   User: 'User',
   Teacher: 'Teacher',
+  TeacherResource: 'TeacherResource',
   Student: 'Student',
   Parent: 'Parent',
   ParentStudent: 'ParentStudent',

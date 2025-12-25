@@ -191,68 +191,97 @@ const getStudentInvoices = async (req, res) => {
 };
 
 // Payment Management
+// Payment Management
 const recordPayment = async (req, res) => {
     try {
         const { tenantId } = req.user;
         const tenantDb = getTenantPrismaClient(tenantId);
-        const { invoiceId, amount, paymentMethod, transactionId, remarks } = req.body;
+        const { invoiceId, studentId, amount, paymentMethod, transactionId, remarks } = req.body;
 
-        // Get invoice
-        const invoice = await tenantDb.feeInvoice.findUnique({
-            where: { id: invoiceId },
-        });
+        const paymentAmount = Number(amount);
 
-        if (!invoice) {
-            return res.status(404).json({ success: false, message: 'Invoice not found' });
+        // CASE 1: Specific Invoice Payment
+        if (invoiceId) {
+            const invoice = await tenantDb.feeInvoice.findUnique({ where: { id: invoiceId } });
+            if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+
+            if (paymentAmount > invoice.balance) {
+                return res.status(400).json({ success: false, message: `Payment (${paymentAmount}) exceeds balance (${invoice.balance})` });
+            }
+
+            const payment = await tenantDb.$transaction(async (tx) => {
+                const newPayment = await tx.feePayment.create({
+                    data: {
+                        invoiceId, amount: paymentAmount, paymentMethod: paymentMethod || 'CASH',
+                        transactionId, remarks, paymentDate: new Date(), status: 'SUCCESS'
+                    }
+                });
+                const newPaid = Number(invoice.paid) + paymentAmount;
+                const newBalance = Number(invoice.total) - newPaid;
+                await tx.feeInvoice.update({
+                    where: { id: invoiceId },
+                    data: { paid: newPaid, balance: newBalance, status: newBalance <= 0 ? 'PAID' : 'PARTIAL' }
+                });
+                return newPayment;
+            });
+            return res.status(201).json({ success: true, data: { payment }, message: 'Payment recorded successfully' });
         }
 
-        if (amount > invoice.balance) {
-            return res.status(400).json({
-                success: false,
-                message: `Payment amount (${amount}) exceeds balance (${invoice.balance})`
+        // CASE 2: Payment by Student ID (Auto-allocate)
+        if (studentId) {
+            // Find unpaid invoices
+            const invoices = await tenantDb.feeInvoice.findMany({
+                where: {
+                    studentId,
+                    status: { in: ['PENDING', 'PARTIAL', 'OVERDUE'] }
+                },
+                orderBy: { dueDate: 'asc' }
             });
+
+            if (invoices.length === 0) {
+                return res.status(400).json({ success: false, message: 'No pending invoices found for this student' });
+            }
+
+            let remainingAmount = paymentAmount;
+            const payments = [];
+
+            await tenantDb.$transaction(async (tx) => {
+                for (const invoice of invoices) {
+                    if (remainingAmount <= 0) break;
+
+                    const allocate = Math.min(Number(invoice.balance), remainingAmount);
+
+                    // Create payment
+                    const newPayment = await tx.feePayment.create({
+                        data: {
+                            invoiceId: invoice.id, amount: allocate, paymentMethod: paymentMethod || 'CASH',
+                            transactionId, remarks: remarks || 'Auto-allocated', paymentDate: new Date(), status: 'SUCCESS'
+                        }
+                    });
+
+                    payments.push(newPayment);
+
+                    // Update invoice
+                    const newPaid = Number(invoice.paid) + allocate;
+                    const newBalance = Number(invoice.total) - newPaid;
+                    await tx.feeInvoice.update({
+                        where: { id: invoice.id },
+                        data: { paid: newPaid, balance: newBalance, status: newBalance <= 0 ? 'PAID' : 'PARTIAL' }
+                    });
+
+                    remainingAmount -= allocate;
+                }
+
+                // If money still remains, maybe create a credit/advance record? 
+                // For MVP/Audit, we will just ignore excess or throw error.
+                // Let's assume we don't accept overpayment for now.
+            });
+
+            return res.status(201).json({ success: true, data: { payments }, message: `Payment recorded across ${payments.length} invoices.` });
         }
 
-        // Use Transaction to update both tables
-        const payment = await tenantDb.$transaction(async (tx) => {
-            // Create payment record
-            const newPayment = await tx.feePayment.create({
-                data: {
-                    invoiceId,
-                    amount,
-                    paymentMethod: paymentMethod || 'CASH',
-                    transactionId,
-                    remarks,
-                    paymentDate: new Date(),
-                },
-            });
+        return res.status(400).json({ success: false, message: 'Provide invoiceId or studentId' });
 
-            // Update invoice
-            const newPaid = Number(invoice.paid) + Number(amount);
-            const newBalance = Number(invoice.total) - newPaid;
-            const newStatus = newBalance === 0 ? 'PAID' : newBalance < invoice.total ? 'PARTIAL' : 'PENDING';
-
-            await tx.feeInvoice.update({
-                where: { id: invoiceId },
-                data: {
-                    paid: newPaid,
-                    balance: newBalance,
-                    status: newStatus,
-                },
-            });
-
-            return newPayment;
-        });
-
-        // Calculate for response (using calculated values for display)
-        const newPaid = Number(invoice.paid) + Number(amount);
-        const newBalance = Number(invoice.total) - newPaid;
-
-        res.status(201).json({
-            success: true,
-            data: { payment },
-            message: `Payment of ${amount} recorded successfully. Balance: ${newBalance}`
-        });
     } catch (error) {
         console.error('recordPayment error:', error);
         res.status(500).json({ success: false, message: 'Failed to record payment' });

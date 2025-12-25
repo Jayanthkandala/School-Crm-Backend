@@ -81,6 +81,26 @@ router.get('/:id', requireTeacherOrAdmin, studentsController.getStudentById);
 
 /**
  * @swagger
+ * /school/students/{id}/performance:
+ *   get:
+ *     summary: Get student performance stats
+ *     tags: [School - Students]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Student performance stats
+ */
+router.get('/:id/performance', requireTeacherOrAdmin, studentsController.getStudentPerformance);
+
+/**
+ * @swagger
  * /school/students:
  *   post:
  *     summary: Create new student (Admission)
@@ -181,7 +201,7 @@ router.delete('/:id', requireSchoolAdmin, studentsController.deleteStudent);
  *       200:
  *         description: Import results
  */
-router.post('/bulk/import', requireSchoolAdmin, studentsController.bulkImportStudents);
+router.post('/bulk-import', requireSchoolAdmin, studentsController.bulkImportStudents);
 
 /**
  * @swagger

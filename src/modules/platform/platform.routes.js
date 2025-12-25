@@ -5,7 +5,7 @@ const subscriptionsController = require('./subscriptions.controller');
 const supportRoutes = require('./support.routes');
 const ownerRoutes = require('./owner.routes');
 const { authenticatePlatformUser } = require('../../middleware/auth.middleware');
-const { requirePlatformAdmin, requireOwner } = require('../../middleware/permission.middleware');
+const { requirePlatformAdmin, requireOwner, requirePlatformRole, PLATFORM_ROLES } = require('../../middleware/permission.middleware');
 
 // Support routes (has its own auth logic)
 router.use('/support', supportRoutes);
@@ -52,7 +52,7 @@ router.use(authenticatePlatformUser);
  *       200:
  *         description: List of schools
  */
-router.get('/schools', requirePlatformAdmin, schoolsController.getAllSchools);
+router.get('/schools', requirePlatformRole(PLATFORM_ROLES.OWNER, PLATFORM_ROLES.ADMIN, PLATFORM_ROLES.SUPPORT), schoolsController.getAllSchools);
 
 /**
  * @swagger
@@ -302,5 +302,48 @@ router.put('/subscription-plans/:id', requireOwner, subscriptionsController.upda
  *         description: Plan deleted
  */
 router.delete('/subscription-plans/:id', requireOwner, subscriptionsController.deletePlan);
+
+const settingsController = require('./settings.controller');
+
+// ============================================
+// SYSTEM SETTINGS
+// ============================================
+
+/**
+ * @swagger
+ * /platform/settings:
+ *   get:
+ *     summary: Get system settings
+ *     tags: [Platform - Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: System settings
+ */
+router.get('/settings', requireOwner, settingsController.getSettings);
+
+/**
+ * @swagger
+ * /platform/settings:
+ *   put:
+ *     summary: Update system settings
+ *     tags: [Platform - Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               settings:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Settings updated
+ */
+router.put('/settings', requireOwner, settingsController.updateSettings);
 
 module.exports = router;

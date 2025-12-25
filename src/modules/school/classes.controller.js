@@ -8,6 +8,15 @@ const getAllClasses = async (req, res) => {
 
         const classes = await tenantDb.class.findMany({
             include: {
+                classTeacher: {
+                    include: {
+                        user: {
+                            select: {
+                                fullName: true
+                            }
+                        }
+                    }
+                },
                 _count: {
                     select: {
                         students: true,
@@ -22,6 +31,44 @@ const getAllClasses = async (req, res) => {
     } catch (error) {
         console.error('getAllClasses error:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch classes' });
+    }
+};
+
+const getClassById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { tenantId } = req.user;
+        const tenantDb = getTenantPrismaClient(tenantId);
+
+        const classData = await tenantDb.class.findUnique({
+            where: { id },
+            include: {
+                classTeacher: {
+                    include: {
+                        user: {
+                            select: {
+                                fullName: true
+                            }
+                        }
+                    }
+                },
+                _count: {
+                    select: {
+                        students: true,
+                        subjects: true,
+                    },
+                },
+            },
+        });
+
+        if (!classData) {
+            return res.status(404).json({ success: false, message: 'Class not found' });
+        }
+
+        res.json({ success: true, data: { class: classData } });
+    } catch (error) {
+        console.error('getClassById error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch class' });
     }
 };
 
@@ -359,6 +406,7 @@ const getClassStats = async (req, res) => {
 
 module.exports = {
     getAllClasses,
+    getClassById,
     createClass,
     updateClass,
     deleteClass,

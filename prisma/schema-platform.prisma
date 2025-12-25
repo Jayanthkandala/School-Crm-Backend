@@ -28,6 +28,8 @@ model PlatformUser {
 
   // Relations
   assignedTickets SupportTicket[] @relation("AssignedTickets")
+  kbArticles      KnowledgeBaseArticle[] @relation("KBArticles")
+  ticketTemplates TicketTemplate[] @relation("TicketTemplates")
   auditLogs       PlatformAuditLog[]
 
   @@map("platform_users")
@@ -235,11 +237,35 @@ model SupportTicket {
   // Assignment
   assignedToUserId  String?  @map("assigned_to_user_id")
   
+  // SLA & Tracking
+  firstResponseAt   DateTime? @map("first_response_at")
+  firstResponseSLA  Int?     @map("first_response_sla") // in minutes
+  resolutionSLA     Int?     @map("resolution_sla") // in minutes
+  slaBreached       Boolean  @default(false) @map("sla_breached")
+  
+  // Categorization
+  tags              Json?    // Array of tags
+  category          String?  // TECHNICAL, BILLING, FEATURE_REQUEST, BUG, GENERAL
+  
   // Conversation
   messages          Json?    // Array of messages
+  internalNotes     Json?    // Array of internal notes (not visible to customer)
   attachments       Json?    // Array of attachment URLs
   
+  // Satisfaction
+  satisfactionRating Int?    @map("satisfaction_rating") // 1-5
+  satisfactionComment String? @map("satisfaction_comment")
+  
+  // Resolution
+  resolution        String?  // Resolution details
   resolvedAt        DateTime? @map("resolved_at")
+  closedAt          DateTime? @map("closed_at")
+  
+  // Escalation
+  escalated         Boolean  @default(false)
+  escalatedAt       DateTime? @map("escalated_at")
+  escalatedTo       String?  @map("escalated_to")
+  
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
   
@@ -248,6 +274,59 @@ model SupportTicket {
   assignedTo        PlatformUser? @relation("AssignedTickets", fields: [assignedToUserId], references: [id])
 
   @@map("support_tickets")
+}
+
+// Knowledge Base Articles
+model KnowledgeBaseArticle {
+  id            String   @id @default(uuid())
+  title         String
+  content       String   @db.Text
+  category      String
+  tags          Json?
+  views         Int      @default(0)
+  helpful       Int      @default(0)
+  notHelpful    Int      @default(0)
+  published     Boolean  @default(false)
+  authorId      String   @map("author_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  author        PlatformUser @relation("KBArticles", fields: [authorId], references: [id])
+  
+  @@map("knowledge_base_articles")
+}
+
+// Ticket Templates (Canned Responses)
+model TicketTemplate {
+  id            String   @id @default(uuid())
+  name          String
+  subject       String?
+  content       String   @db.Text
+  category      String?
+  tags          Json?
+  createdBy     String   @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  creator       PlatformUser @relation("TicketTemplates", fields: [createdBy], references: [id])
+  
+  @@map("ticket_templates")
+}
+
+// SLA Policies
+model SLAPolicy {
+  id                    String   @id @default(uuid())
+  name                  String
+  description           String?
+  priority              TicketPriority
+  firstResponseTime     Int      @map("first_response_time") // in minutes
+  resolutionTime        Int      @map("resolution_time") // in minutes
+  businessHoursOnly     Boolean  @default(false) @map("business_hours_only")
+  active                Boolean  @default(true)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  
+  @@map("sla_policies")
 }
 
 enum TicketPriority {

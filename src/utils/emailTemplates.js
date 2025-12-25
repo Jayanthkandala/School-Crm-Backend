@@ -513,7 +513,7 @@ const admissionNotificationEmail = (data) => {
 
 // Support Ticket Created Email
 const supportTicketCreatedEmail = (data) => {
-  const { ticketNumber, subject, category, priority, schoolName } = data;
+  const { ticketNumber, subject, category, priority, schoolName, customMessage } = data;
 
   const content = `
     <h2 style="color: #2563eb; margin-bottom: 20px;">Support Ticket Created</h2>
@@ -527,6 +527,12 @@ const supportTicketCreatedEmail = (data) => {
       <p style="margin: 10px 0;"><strong>Category:</strong> ${category}</p>
       <p style="margin: 10px 0;"><strong>Priority:</strong> ${priority}</p>
     </div>
+
+    ${customMessage ? `
+    <div style="margin-top: 15px; padding: 15px; background-color: white; border-left: 4px solid #2563eb;">
+        <h3 style="margin-top: 0; font-size: 14px; text-transform: uppercase; color: #6b7280;">Auto-Response</h3>
+        <p style="margin: 0; color: #374151;">${customMessage}</p>
+    </div>` : ''}
 
     <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
       Our support team will review your ticket and respond shortly.
@@ -672,6 +678,56 @@ const admissionStatusChangeEmail = (data) => {
   return baseTemplate(content);
 };
 
+// Support Ticket Status Change Email
+const supportTicketStatusChangeEmail = (data) => {
+  const { ticketNumber, subject, status, updatedBy } = data;
+
+  const content = `
+    <h2 style="color: #2563eb; margin-bottom: 20px;">Ticket Status Updated</h2>
+    <p style="font-size: 16px; color: #374151; line-height: 1.6;">
+      The status of your ticket has been updated by <strong>${updatedBy}</strong>.
+    </p>
+    
+    <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <p style="margin: 10px 0;"><strong>Ticket Number:</strong> ${ticketNumber}</p>
+      <p style="margin: 10px 0;"><strong>Subject:</strong> ${subject}</p>
+      <p style="margin: 10px 0;"><strong>New Status:</strong> <span style="font-weight: bold; color: ${status === 'RESOLVED' ? 'green' : 'blue'}">${status}</span></p>
+    </div>
+
+    <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
+      Login to the portal for more details.
+    </p>
+  `;
+
+  return baseTemplate(content);
+};
+
+// Support Ticket Closed Email
+const supportTicketClosedEmail = (data) => {
+  const { ticketNumber, subject, closedBy, resolution } = data;
+
+  const content = `
+    <h2 style="color: #4b5563; margin-bottom: 20px;">Support Ticket Closed</h2>
+    <p style="font-size: 16px; color: #374151; line-height: 1.6;">
+      Your support ticket has been closed by <strong>${closedBy}</strong>.
+    </p>
+    
+    <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <p style="margin: 10px 0;"><strong>Ticket Number:</strong> ${ticketNumber}</p>
+      <p style="margin: 10px 0;"><strong>Subject:</strong> ${subject}</p>
+      ${resolution ? `<div style="margin-top: 15px; padding: 15px; background-color: white; border-left: 4px solid #10b981;">
+        <p style="margin: 0; color: #374151;"><strong>Resolution:</strong> ${resolution}</p>
+      </div>` : ''}
+    </div>
+
+    <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
+      If you need further assistance, please create a new ticket.
+    </p>
+  `;
+
+  return baseTemplate(content);
+};
+
 module.exports = {
   welcomeEmail,
   invoiceEmail,
@@ -686,7 +742,31 @@ module.exports = {
   supportTicketCreatedEmail,
   supportTicketAssignedEmail,
   supportTicketResponseEmail,
+  supportTicketStatusChangeEmail,
+  supportTicketClosedEmail,
   schoolSuspensionEmail,
   paymentConfirmationEmail,
   admissionStatusChangeEmail,
+  generalMessage: (data) => {
+    const { name, message, senderName } = data;
+    const content = `
+      <div class="header">
+        <h1>New Message</h1>
+      </div>
+      <div class="content">
+        <h2>Hello ${name},</h2>
+        <p>You have received a new message from <strong>${senderName}</strong>:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #667eea; margin: 20px 0;">
+          ${message}
+        </div>
+        
+        <p>Login to your portal to reply.</p>
+      </div>
+      <div class="footer">
+        <p>© ${new Date().getFullYear()} School CRM. All rights reserved.</p>
+      </div>
+    `;
+    return baseTemplate(content);
+  }
 };

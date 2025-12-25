@@ -58,6 +58,7 @@ function getTenantPrismaClient(tenantId) {
 async function ensureTenantSchema(tenantId) {
     // If we've already initialized this tenant in this process, skip
     if (initializedTenants.has(tenantId)) {
+        console.log(`⏭️  Tenant ${tenantId} already initialized in this process`);
         return;
     }
 
@@ -79,14 +80,18 @@ async function ensureTenantSchema(tenantId) {
             await mainClient.$executeRawUnsafe(`CREATE DATABASE "${databaseName}"`);
             console.log(`✅ Database "${databaseName}" created`);
         } catch (error) {
-            if (error.code === '42P04') {
-                console.log(`ℹ️ Database "${databaseName}" already exists`);
+            // PostgreSQL error code 42P04 = database already exists
+            // Also check error message for "already exists"
+            if (error.code === '42P04' || error.message?.includes('already exists')) {
+                console.log(`ℹ️  Database "${databaseName}" already exists`);
             } else {
+                console.error(`❌ Error creating database:`, error.code, error.message);
                 throw error;
             }
         }
 
-        // 2. Run migrations on the tenant database
+        // 2. Always run migrations to ensure schema is up to date
+        // db push is idempotent, so it's safe to run even if schema exists
         const baseDatabaseUrl = process.env.DATABASE_URL;
         const tenantDatabaseUrl = baseDatabaseUrl.replace(/\/[^\/]+(\?|$)/, `/${databaseName}$1`);
         const schemaPath = path.join(__dirname, '../../prisma/tenant-schema.prisma');
@@ -98,7 +103,7 @@ async function ensureTenantSchema(tenantId) {
         await execPromise(cmd, {
             env: {
                 ...process.env,
-                DATABASE_URL: tenantDatabaseUrl
+                TENANT_DATABASE_URL: tenantDatabaseUrl
             }
         });
 

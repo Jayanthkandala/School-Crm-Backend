@@ -32,7 +32,7 @@ router.get('/', certificatesController.getAllCertificates);
  *       200:
  *         description: Success
  */
-router.post('/generate', requireSchoolAdmin, certificatesController.generateCertificate);
+router.post('/generate', requireSchoolAdmin, certificatesController.createAndIssueCertificate);
 /**
  * @swagger
  * /school/verify/:verificationCode:

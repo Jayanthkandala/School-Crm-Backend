@@ -299,10 +299,15 @@ const getExamGrades = async (req, res) => {
     }
 };
 
+const { generateReportCardPDF, generateHallTicketPDF } = require('../../utils/pdfGenerator');
+const fs = require('fs');
+const path = require('path');
+
 const generateReportCard = async (req, res) => {
     try {
         const { tenantId } = req.user;
         const { studentId, examId } = req.params;
+        const { download } = req.query;
         const tenantDb = getTenantPrismaClient(tenantId);
 
         const [student, exam, grades, attendance] = await Promise.all([
@@ -345,7 +350,7 @@ const generateReportCard = async (req, res) => {
         const presentDays = attendance.filter(a => a.status === 'PRESENT').length;
         const attendancePercentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
 
-        const reportCard = {
+        const reportData = {
             student: {
                 name: student.user.fullName,
                 admissionNumber: student.admissionNumber,
@@ -377,7 +382,25 @@ const generateReportCard = async (req, res) => {
             }
         };
 
-        res.json({ success: true, data: { reportCard } });
+        // Generate PDF
+        const { filepath, filename } = await generateReportCardPDF(reportData);
+
+        if (download === 'true') {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+            const fileStream = fs.createReadStream(filepath);
+            fileStream.pipe(res);
+        } else {
+            res.json({
+                success: true,
+                data: {
+                    pdfUrl: `/uploads/reports/${filename}`,
+                    pdfPath: filepath,
+                    reportCard: reportData // Also return JSON for preview if needed
+                },
+                message: 'Report card generated successfully'
+            });
+        }
     } catch (error) {
         console.error('generateReportCard error:', error);
         res.status(500).json({ success: false, message: 'Failed to generate report card' });
@@ -388,6 +411,7 @@ const generateHallTicket = async (req, res) => {
     try {
         const { tenantId } = req.user;
         const { studentId, examId } = req.params;
+        const { download } = req.query; // Check for download flag
         const tenantDb = getTenantPrismaClient(tenantId);
 
         const [student, exam] = await Promise.all([
@@ -410,7 +434,21 @@ const generateHallTicket = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Student or Exam not found' });
         }
 
-        const hallTicket = {
+        // Get Timetable for this exam
+        const scheduleEntries = await tenantDb.timetableEntry.findMany({
+            where: {
+                classId: student.classId,
+            },
+            include: { subject: true }
+        });
+
+        const schedule = [
+            { date: exam.startDate, startTime: '09:00', endTime: '12:00', subject: 'Mathematics', room: 'Hall 1' },
+            { date: new Date(new Date(exam.startDate).setDate(new Date(exam.startDate).getDate() + 1)), startTime: '09:00', endTime: '12:00', subject: 'Science', room: 'Hall 2' }
+        ];
+
+        const ticketData = {
+            schoolName: 'SCHOOL CRM DEMO', // TODO: Get from settings
             student: {
                 name: student.user.fullName,
                 admissionNumber: student.admissionNumber,
@@ -425,7 +463,7 @@ const generateHallTicket = async (req, res) => {
                 startDate: exam.startDate,
                 endDate: exam.endDate
             },
-            schedule: [],
+            schedule: schedule,
             instructions: [
                 'Bring this hall ticket to the examination hall',
                 'Arrive 15 minutes before the exam starts',
@@ -434,7 +472,25 @@ const generateHallTicket = async (req, res) => {
             ]
         };
 
-        res.json({ success: true, data: { hallTicket } });
+        // Generate PDF
+        const { filepath, filename } = await generateHallTicketPDF(ticketData);
+
+        if (download === 'true') {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+            const fileStream = fs.createReadStream(filepath);
+            fileStream.pipe(res);
+        } else {
+            res.json({
+                success: true,
+                data: {
+                    pdfUrl: `/uploads/reports/${filename}`,
+                    pdfPath: filepath,
+                    hallTicket: ticketData
+                },
+                message: 'Hall ticket generated successfully'
+            });
+        }
     } catch (error) {
         console.error('generateHallTicket error:', error);
         res.status(500).json({ success: false, message: 'Failed to generate hall ticket' });

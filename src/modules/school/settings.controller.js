@@ -17,6 +17,7 @@ const getSettings = async (req, res) => {
                 state: true,
                 pinCode: true,
                 logoUrl: true,
+                enabledModules: true,
             },
         });
 

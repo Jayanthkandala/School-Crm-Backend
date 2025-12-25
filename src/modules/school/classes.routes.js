@@ -22,6 +22,26 @@ router.get('/', requireTeacherOrAdmin, classesController.getAllClasses);
 
 /**
  * @swagger
+ * /school/classes/{id}:
+ *   get:
+ *     summary: Get class by ID
+ *     tags: [School - Classes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Class details
+ */
+router.get('/:id', requireTeacherOrAdmin, classesController.getClassById);
+
+/**
+ * @swagger
  * /school/classes:
  *   post:
  *     summary: Create new class

@@ -49,6 +49,7 @@ const validateTenant = async (req, res, next) => {
                 schoolName: true,
                 status: true,
                 subdomain: true,
+                tenantId: true
             },
         });
 
@@ -68,7 +69,9 @@ const validateTenant = async (req, res, next) => {
 
         // Attach school info to request for easy access
         req.tenant = school;
-        req.tenantId = school.id; // Ensure tenantId is always set
+        // Use friendly tenantId for DB connection if available, otherwise fallback to UUID
+        req.tenantId = school.tenantId || school.id;
+        req.schoolId = school.id; // Keep UUID reference
 
         next();
     } catch (error) {

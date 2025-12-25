@@ -114,8 +114,32 @@ model Teacher {
   homeworkCreated    Homework[]         // Phase 3
   originalSubstitutions TimetableSubstitution[] @relation("OriginalTeacher") // Phase 3
   substitutedSubstitutions TimetableSubstitution[] @relation("SubstituteTeacher") // Phase 3
+  resources          TeacherResource[]  // Teacher uploaded files
 
   @@map("teachers")
+}
+
+// ============================================
+// TEACHER RESOURCES (File Storage)
+// ============================================
+
+model TeacherResource {
+  id          String   @id @default(uuid())
+  teacherId   String   @map("teacher_id")
+  fileName    String   @map("file_name")
+  fileType    String   @map("file_type") // pdf, doc, ppt, video, image, etc.
+  fileSize    Int      @map("file_size") // in bytes
+  fileUrl     String   @map("file_url") // S3 URL or local path
+  description String?  @db.Text
+  category    String?  // Syllabus, Lecture Notes, Assignments, etc.
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  teacher     Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId])
+  @@map("teacher_resources")
 }
 
 // ============================================

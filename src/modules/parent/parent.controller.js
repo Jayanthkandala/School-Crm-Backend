@@ -792,13 +792,61 @@ const changePassword = async (req, res) => {
     }
 };
 
+// Get Leave Requests
+const getLeaveRequests = async (req, res) => {
+    try {
+        const { id: userId, tenantId } = req.user;
+        const tenantDb = getTenantPrismaClient(tenantId);
+
+        // Get parent's children
+        const parent = await tenantDb.parent.findFirst({
+            where: { userId },
+            include: {
+                children: {
+                    include: {
+                        student: true
+                    }
+                }
+            }
+        });
+
+        if (!parent) {
+            return res.status(404).json({ success: false, message: 'Parent not found' });
+        }
+
+        const studentIds = parent.children.map(c => c.studentId);
+
+        // Get all leave requests for parent's children
+        const leaveRequests = await tenantDb.studentLeaveRequest.findMany({
+            where: {
+                studentId: { in: studentIds }
+            },
+            include: {
+                student: {
+                    include: {
+                        user: { select: { fullName: true } }
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json({ success: true, data: { leaveRequests } });
+    } catch (error) {
+        console.error('Get leave requests error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch leave requests' });
+    }
+};
+
 module.exports = {
     getDashboard,
     getChildren,
     getChildAttendance,
     getChildGrades,
+    getChildGrades,
     getFeeInvoices,
     applyLeave,
+    getLeaveRequests,
     getReportCards,
     downloadReportCard,
     payFeeOnline,

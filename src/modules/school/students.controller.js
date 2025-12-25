@@ -384,9 +384,9 @@ const promoteStudents = async (req, res) => {
     try {
         const { tenantId } = req.user;
         const prisma = getTenantPrismaClient(tenantId);
-        const { currentClassId, targetClassId, studentIds, academicYear } = req.body;
+        const { currentClassId, targetClassId, studentIds, academicYear, promoteAll } = req.body;
 
-        if (!currentClassId || !targetClassId || !Array.isArray(studentIds)) {
+        if (!currentClassId || !targetClassId) {
             return res.status(400).json({ success: false, message: 'Missing required fields' });
         }
 
@@ -396,36 +396,48 @@ const promoteStudents = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Target class not found' });
         }
 
+        let studentsToPromote = [];
+
+        if (promoteAll) {
+            // Get all active students from current class
+            const students = await prisma.student.findMany({
+                where: { classId: currentClassId, status: 'ACTIVE' },
+                select: { id: true }
+            });
+            studentsToPromote = students.map(s => s.id);
+        } else if (Array.isArray(studentIds)) {
+            studentsToPromote = studentIds;
+        } else {
+            return res.status(400).json({ success: false, message: 'Provide studentIds or promoteAll: true' });
+        }
+
         let promoted = 0;
         const errors = [];
 
-        for (const studentId of studentIds) {
-            try {
-                const student = await prisma.student.findUnique({ where: { id: studentId } });
-
-                if (!student) {
-                    errors.push({ studentId, error: 'Student not found' });
-                    continue;
+        await prisma.$transaction(async (tx) => {
+            for (const studentId of studentsToPromote) {
+                try {
+                    // Update student
+                    await tx.student.update({
+                        where: { id: studentId },
+                        data: {
+                            classId: targetClassId,
+                            rollNumber: null // Reset roll number
+                        }
+                    });
+                    promoted++;
+                } catch (error) {
+                    errors.push({ studentId, error: error.message });
                 }
-
-                if (student.classId !== currentClassId) {
-                    errors.push({ studentId, error: 'Student not in current class' });
-                    continue;
-                }
-
-                await prisma.student.update({
-                    where: { id: studentId },
-                    data: {
-                        classId: targetClassId,
-                        rollNumber: null // Reset roll number for new class
-                    }
-                });
-
-                promoted++;
-            } catch (error) {
-                errors.push({ studentId, error: error.message });
             }
-        }
+
+            // Update class counts
+            const currentCount = await tx.student.count({ where: { classId: currentClassId, status: 'ACTIVE' } });
+            await tx.class.update({ where: { id: currentClassId }, data: { currentStrength: currentCount } });
+
+            const targetCount = await tx.student.count({ where: { classId: targetClassId, status: 'ACTIVE' } });
+            await tx.class.update({ where: { id: targetClassId }, data: { currentStrength: targetCount } });
+        });
 
         res.json({
             success: true,
@@ -510,7 +522,10 @@ const transferStudent = async (req, res) => {
     }
 };
 
-// Generate ID Cards
+const { generateIDCardPDF } = require('../../services/pdf.service');
+const archiver = require('archiver');
+
+// Generate ID Cards (PDF)
 const generateIDCards = async (req, res) => {
     try {
         const { tenantId } = req.user;
@@ -532,25 +547,42 @@ const generateIDCards = async (req, res) => {
             }
         });
 
-        const idCards = students.map(student => ({
-            studentId: student.id,
-            admissionNumber: student.admissionNumber,
-            studentName: student.user.fullName,
-            class: `${student.class.className} - ${student.class.section}`,
-            rollNumber: student.rollNumber,
-            photo: student.user.profilePhotoUrl,
-            bloodGroup: student.bloodGroup,
-            dob: student.user.dateOfBirth,
-            validUntil: new Date(new Date().getFullYear() + 1, 11, 31), // Valid till end of next year
-            qrCode: `STUDENT:${student.admissionNumber}` // QR code data
-        }));
+        if (students.length === 0) {
+            return res.status(404).json({ success: false, message: 'No students found' });
+        }
 
-        // In production, this would generate actual PDF ID cards
-        res.json({
-            success: true,
-            message: `${idCards.length} ID cards generated`,
-            data: { idCards }
+        // If single student, return PDF directly
+        if (students.length === 1) {
+            const pdfBuffer = await generateIDCardPDF(students[0], { name: 'Demo School' });
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=ID_Card_${students[0].admissionNumber}.pdf`);
+            return res.send(pdfBuffer);
+        }
+
+        // If multiple students, return ZIP of PDFs
+        const archive = archiver('zip', {
+            zlib: { level: 9 }
         });
+
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', 'attachment; filename=ID_Cards_Batch.zip');
+
+        archive.pipe(res);
+
+        for (const student of students) {
+            try {
+                const pdfBuffer = await generateIDCardPDF(student, { name: 'Demo School' });
+                archive.append(pdfBuffer, { name: `ID_Card_${student.admissionNumber}.pdf` });
+            } catch (err) {
+                console.error(`Failed to generate ID card for ${student.admissionNumber}:`, err);
+                // Continue with other students
+            }
+        }
+
+        await archive.finalize();
+        return;
+
     } catch (error) {
         console.error('generateIDCards error:', error);
         res.status(500).json({ success: false, message: 'Failed to generate ID cards' });
@@ -640,25 +672,127 @@ const getStudentStats = async (req, res) => {
         });
     } catch (error) {
         console.error('getStudentStats error:', error);
-        // Return empty stats if tenant database is not set up yet
         res.json({
             success: true,
             data: {
                 total: 0,
-                byStatus: {
-                    active: 0,
-                    graduated: 0,
-                    transferred: 0,
-                    dropped: 0
-                },
-                byGender: {
-                    male: 0,
-                    female: 0,
-                    other: 0
-                },
+                byStatus: { active: 0, graduated: 0, transferred: 0, dropped: 0 },
+                byGender: { male: 0, female: 0, other: 0 },
                 classDistribution: []
             }
         });
+    }
+};
+
+// Get Single Student Performance Stats
+const getStudentPerformance = async (req, res) => {
+    try {
+        const { tenantId } = req.user;
+        const prisma = getTenantPrismaClient(tenantId);
+        const { id } = req.params;
+
+        const student = await prisma.student.findUnique({
+            where: { id },
+            include: { class: true }
+        });
+
+        if (!student) {
+            return res.status(404).json({ success: false, message: 'Student not found' });
+        }
+
+        // 1. Calculate Attendance Percentage
+        const totalAttendance = await prisma.attendance.count({
+            where: { studentId: id }
+        });
+
+        const presentAttendance = await prisma.attendance.count({
+            where: {
+                studentId: id,
+                status: { in: ['PRESENT', 'LATE', 'HALF_DAY'] }
+            }
+        });
+
+        const attendancePercentage = totalAttendance > 0
+            ? Math.round((presentAttendance / totalAttendance) * 100)
+            : 0;
+
+        // 2. Calculate Average Grade
+        const grades = await prisma.grade.findMany({
+            where: { studentId: id }
+        });
+
+        let averageGrade = 0;
+        let totalMarks = 0;
+        let maxMarksTotal = 0;
+
+        if (grades.length > 0) {
+            grades.forEach(grade => {
+                totalMarks += Number(grade.marksObtained);
+                maxMarksTotal += Number(grade.maxMarks);
+            });
+            averageGrade = maxMarksTotal > 0
+                ? Math.round((totalMarks / maxMarksTotal) * 100)
+                : 0;
+        }
+
+        // 3. Calculate Class Rank
+        // Get all students in class with their average marks
+        const classStudents = await prisma.student.findMany({
+            where: {
+                classId: student.classId,
+                status: 'ACTIVE'
+            },
+            select: { id: true }
+        });
+
+        // This is a simplified rank calculation. 
+        // In a real heavy-load scenario, this should be cached or calculated periodically.
+        let studentAverages = [];
+
+        for (const clsStudent of classStudents) {
+            const sGrades = await prisma.grade.findMany({
+                where: { studentId: clsStudent.id }
+            });
+
+            let sTotal = 0;
+            let sMax = 0;
+
+            sGrades.forEach(g => {
+                sTotal += Number(g.marksObtained);
+                sMax += Number(g.maxMarks);
+            });
+
+            const avg = sMax > 0 ? (sTotal / sMax) * 100 : 0;
+            studentAverages.push({ studentId: clsStudent.id, avg });
+        }
+
+        // Sort descending
+        studentAverages.sort((a, b) => b.avg - a.avg);
+
+        // Find rank
+        const rankIndex = studentAverages.findIndex(s => s.studentId === id);
+        const rank = rankIndex !== -1 ? rankIndex + 1 : '-';
+
+        res.json({
+            success: true,
+            data: {
+                attendance: {
+                    percentage: attendancePercentage,
+                    totalDays: totalAttendance,
+                    presentDays: presentAttendance
+                },
+                academic: {
+                    averagePercentage: averageGrade,
+                    totalExams: grades.length,
+                    rank: rank,
+                    totalStudents: classStudents.length
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('getStudentPerformance error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch student performance' });
     }
 };
 
@@ -672,5 +806,6 @@ module.exports = {
     promoteStudents,
     transferStudent,
     generateIDCards,
-    getStudentStats
+    getStudentStats,
+    getStudentPerformance
 };

@@ -57,4 +57,9 @@ router.get('/profile', teacherController.getMyProfile);
 router.put('/profile', teacherController.updateMyProfile);
 router.post('/change-password', teacherController.changePassword);
 
+// Resources
+router.get('/resources', teacherController.getMyResources);
+router.post('/resources', teacherController.uploadResource);
+router.delete('/resources/:id', teacherController.deleteResource);
+
 module.exports = router;

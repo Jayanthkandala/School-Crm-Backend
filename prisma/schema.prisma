@@ -53,6 +53,11 @@ model School {
   schoolName        String   @map("school_name")
   subdomain         String   @unique
   customDomain      String?  @map("custom_domain")
+  
+  // Tenant Identification
+  sequenceId        Int      @default(autoincrement()) @map("sequence_id")
+  tenantId          String?  @unique @map("tenant_id") // e.g. SCH-001
+  
   subscriptionPlanId String? @map("subscription_plan_id")
   status            SchoolStatus @default(TRIAL)
   trialEndsAt       DateTime? @map("trial_ends_at")

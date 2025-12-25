@@ -225,14 +225,29 @@ const verifyCertificate = async (req, res) => {
     }
 };
 
-const downloadCertificate = async (req, res) => {
+const createAndIssueCertificate = async (req, res) => {
     try {
-        const { id } = req.params;
         const { tenantId } = req.user;
         const tenantDb = getTenantPrismaClient(tenantId);
+        const { studentId, certificateType, reason, additionalDetails } = req.body;
 
-        const certificate = await tenantDb.certificate.findUnique({
-            where: { id },
+        const count = await tenantDb.certificate.count();
+        const number = generateCertificateNumber(count + 1);
+        const verificationCode = `CERT-${number}-${Date.now().toString().slice(-4)}`;
+
+        // Create and Issue in one step
+        const certificate = await tenantDb.certificate.create({
+            data: {
+                studentId,
+                certificateType,
+                certificateNumber: number,
+                verificationCode,
+                reason: reason || 'Admin Generated',
+                description: additionalDetails,
+                status: 'ISSUED',
+                issuedAt: new Date(),
+                approvedAt: new Date()
+            },
             include: {
                 student: {
                     include: {
@@ -243,25 +258,69 @@ const downloadCertificate = async (req, res) => {
             },
         });
 
+        // Generate PDF
+        const { generateCertificatePDF } = require('../../utils/pdfGenerator');
+        const { filepath, filename } = await generateCertificatePDF({
+            certificateNumber: verificationCode,
+            studentName: certificate.student.user.fullName,
+            className: `${certificate.student.class.className} - ${certificate.student.class.section}`,
+            description: additionalDetails || `${certificateType} Certificate`,
+            issueDate: new Date()
+        });
+
+        res.status(201).json({
+            success: true,
+            data: {
+                certificate: {
+                    ...certificate,
+                    pdfUrl: `/uploads/certificates/${filename}`
+                }
+            },
+            message: 'Certificate generated successfully'
+        });
+
+    } catch (error) {
+        console.error('createAndIssueCertificate error:', error);
+        res.status(500).json({ success: false, message: 'Failed to generate certificate' });
+    }
+};
+
+const downloadCertificate = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { tenantId } = req.user;
+        const tenantDb = getTenantPrismaClient(tenantId);
+
+        const certificate = await tenantDb.certificate.findUnique({
+            where: { id },
+            include: {
+                student: { include: { user: true, class: true } }
+            }
+        });
+
         if (!certificate) {
             return res.status(404).json({ success: false, message: 'Certificate not found' });
         }
 
-        if (certificate.status !== 'ISSUED') {
-            return res.status(400).json({ success: false, message: 'Certificate not issued yet' });
+        // Generate PDF on the fly for download
+        const { generateCertificatePDF } = require('../../utils/pdfGenerator');
+        const { filepath } = await generateCertificatePDF({
+            certificateNumber: certificate.verificationCode || certificate.certificateNumber,
+            studentName: certificate.student.user.fullName,
+            className: `${certificate.student.class.className} - ${certificate.student.class.section}`,
+            description: certificate.description || `${certificate.certificateType} Certificate`,
+            issueDate: certificate.issuedAt || new Date()
+        });
+
+        const fs = require('fs');
+        if (fs.existsSync(filepath)) {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=Certificate_${certificate.certificateNumber}.pdf`);
+            fs.createReadStream(filepath).pipe(res);
+        } else {
+            res.status(404).json({ success: false, message: 'Certificate file not found' });
         }
 
-        // TODO: Generate and return PDF
-        // const pdfBuffer = await generateCertificatePDF(certificate);
-        // res.setHeader('Content-Type', 'application/pdf');
-        // res.setHeader('Content-Disposition', `attachment; filename=certificate-${certificate.certificateNumber}.pdf`);
-        // res.send(pdfBuffer);
-
-        res.json({
-            success: true,
-            message: 'Certificate download ready',
-            data: { certificate }
-        });
     } catch (error) {
         console.error('downloadCertificate error:', error);
         res.status(500).json({ success: false, message: 'Failed to download certificate' });
@@ -276,4 +335,5 @@ module.exports = {
     generateCertificate,
     verifyCertificate,
     downloadCertificate,
+    createAndIssueCertificate
 };

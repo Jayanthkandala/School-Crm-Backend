@@ -1,5 +1,8 @@
 const { getTenantPrismaClient } = require('../../utils/tenantDb');
 
+const { sendEmail } = require('../../services/email.service');
+const { sendSMS } = require('../../services/sms.service');
+
 // Messages
 const sendMessage = async (req, res) => {
     try {
@@ -14,7 +17,34 @@ const sendMessage = async (req, res) => {
                 subject,
                 message,
             },
+            include: {
+                recipient: true // Fetch recipient details for email/sms
+            }
         });
+
+        // Send Email
+        if (msg.recipient && msg.recipient.email) {
+            await sendEmail({
+                to: msg.recipient.email,
+                subject: subject || 'New Message from School CRM',
+                template: 'generalMessage', // ensure this template exists or use a generic one
+                data: {
+                    name: msg.recipient.fullName,
+                    message: message,
+                    senderName: req.user.fullName
+                }
+            });
+        }
+
+        // Send SMS
+        if (msg.recipient && msg.recipient.phoneNumber) {
+            // Basic SMS format
+            const smsText = `${subject ? subject + ': ' : ''}${message}`;
+            await sendSMS({
+                to: msg.recipient.phoneNumber,
+                message: smsText
+            });
+        }
 
         res.status(201).json({ success: true, data: { message: msg } });
     } catch (error) {

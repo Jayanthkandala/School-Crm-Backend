@@ -566,6 +566,94 @@ const changePassword = async (req, res) => {
     }
 };
 
+// Get My Resources
+const getMyResources = async (req, res) => {
+    try {
+        const { id: userId, tenantId } = req.user;
+        const tenantDb = getTenantPrismaClient(tenantId);
+
+        const teacher = await tenantDb.teacher.findFirst({ where: { userId } });
+
+        const resources = await tenantDb.teacherResource.findMany({
+            where: { teacherId: teacher.id },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json({
+            success: true,
+            data: {
+                resources,
+                count: resources.length
+            }
+        });
+    } catch (error) {
+        console.error('Get my resources error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch resources' });
+    }
+};
+
+// Upload Resource
+const uploadResource = async (req, res) => {
+    try {
+        const { id: userId, tenantId } = req.user;
+        const { fileName, fileType, fileSize, fileUrl, description, category } = req.body;
+        const tenantDb = getTenantPrismaClient(tenantId);
+
+        const teacher = await tenantDb.teacher.findFirst({ where: { userId } });
+
+        const resource = await tenantDb.teacherResource.create({
+            data: {
+                teacherId: teacher.id,
+                fileName,
+                fileType,
+                fileSize: parseInt(fileSize),
+                fileUrl,
+                description: description || null,
+                category: category || null
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'Resource uploaded successfully',
+            data: { resource }
+        });
+    } catch (error) {
+        console.error('Upload resource error:', error);
+        res.status(500).json({ success: false, message: 'Failed to upload resource' });
+    }
+};
+
+// Delete Resource
+const deleteResource = async (req, res) => {
+    try {
+        const { id: userId, tenantId } = req.user;
+        const { id } = req.params;
+        const tenantDb = getTenantPrismaClient(tenantId);
+
+        const teacher = await tenantDb.teacher.findFirst({ where: { userId } });
+
+        // Verify resource belongs to this teacher
+        const resource = await tenantDb.teacherResource.findFirst({
+            where: { id, teacherId: teacher.id }
+        });
+
+        if (!resource) {
+            return res.status(404).json({ success: false, message: 'Resource not found' });
+        }
+
+        await tenantDb.teacherResource.delete({ where: { id } });
+
+        res.json({
+            success: true,
+            message: 'Resource deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete resource error:', error);
+        res.status(500).json({ success: false, message: 'Failed to delete resource' });
+    }
+};
+
 module.exports = {
     getDashboard,
     getMyClasses,
@@ -584,4 +672,7 @@ module.exports = {
     getMyProfile,
     updateMyProfile,
     changePassword,
+    getMyResources,
+    uploadResource,
+    deleteResource,
 };

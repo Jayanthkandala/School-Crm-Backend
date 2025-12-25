@@ -109,6 +109,8 @@ router.get('/children/:childId/attendance', parentController.getChildAttendance)
  *         description: Leave applied successfully
  */
 router.post('/children/:childId/leave/apply', parentController.applyLeave);
+router.get('/leave-requests', parentController.getLeaveRequests);
+
 
 router.get('/children/:childId/grades', parentController.getChildGrades);
 router.get('/children/:childId/report-cards', parentController.getReportCards);

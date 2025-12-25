@@ -1,6 +1,7 @@
 require('dotenv').config();
 const app = require('./app');
 const { PrismaClient } = require('@prisma/client');
+const { startSLACron } = require('./cron/sla-checker');
 
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3000;
@@ -36,6 +37,9 @@ async function startServer() {
             console.log('🚀 ============================================');
             console.log('');
         });
+
+        // Start Background Jobs
+        startSLACron();
 
         // Graceful shutdown
         process.on('SIGTERM', async () => {

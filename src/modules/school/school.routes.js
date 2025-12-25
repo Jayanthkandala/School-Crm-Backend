@@ -71,6 +71,7 @@ router.use('/homework', homeworkRoutes);
 router.use('/sports', sportsRoutes);
 router.use('/disciplinary', require('./disciplinary.routes'));
 router.use('/staff-attendance', require('./staff-attendance.routes'));
+router.use('/support', require('./support.routes'));
 
 
 module.exports = router;

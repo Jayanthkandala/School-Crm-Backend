@@ -49,7 +49,7 @@ const getDashboard = async (req, res) => {
                 },
             },
             _sum: {
-                total: true,
+                balance: true,
             },
         });
 
@@ -117,7 +117,7 @@ const getDashboard = async (req, res) => {
             data: {
                 todayCollection: todayPayments._sum.amount || 0,
                 monthCollection: monthPayments._sum.amount || 0,
-                pendingFees: pendingInvoices._sum.total || 0,
+                pendingFees: pendingInvoices._sum.balance || 0,
                 expenses: monthExpenses._sum.amount || 0,
                 recentTransactions: recentTransactions.map(t => ({
                     id: t.id,
@@ -687,7 +687,7 @@ const getBalanceSheet = async (req, res) => {
                 },
             },
             _sum: {
-                total: true,
+                balance: true,
             },
         });
 
@@ -720,7 +720,7 @@ const getBalanceSheet = async (req, res) => {
                 assets: {
                     cash: cash._sum.amount || 0,
                     bank: 0, // TODO: Integrate with bank
-                    receivables: receivables._sum.total || 0,
+                    receivables: receivables._sum.balance || 0,
                     total: totalAssets,
                 },
                 liabilities: {
