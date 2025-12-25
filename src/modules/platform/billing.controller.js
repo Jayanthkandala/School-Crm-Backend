@@ -359,10 +359,148 @@ const cancelSubscription = async (req, res) => {
     }
 };
 
+/**
+ * Manually create an invoice
+ */
+const createInvoice = async (req, res) => {
+    try {
+        const { schoolId, amount, tax, description, dueDate } = req.body;
+
+        const school = await prisma.school.findUnique({
+            where: { id: schoolId }
+        });
+
+        if (!school) {
+            return res.status(404).json({ success: false, message: 'School not found' });
+        }
+
+        const count = await prisma.invoice.count();
+        const invoiceNumber = `INV/${new Date().getFullYear()}/${(count + 1).toString().padStart(6, '0')}`;
+
+        const gst = tax || 0;
+        const total = Number(amount) + Number(gst);
+
+        const invoice = await prisma.invoice.create({
+            data: {
+                schoolId,
+                invoiceNumber,
+                amount: Number(amount),
+                tax: Number(gst),
+                total: Number(total),
+                status: 'SENT', // Manual invoices are assumed sent
+                dueDate: new Date(dueDate),
+                description,
+                billingPeriod: 'Manual Invoice',
+            },
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Invoice created successfully',
+            data: { invoice },
+        });
+    } catch (error) {
+        console.error('Create invoice error:', error);
+        res.status(500).json({ success: false, message: 'Failed to create invoice' });
+    }
+};
+
+/**
+ * Get invoice by ID
+ */
+const getInvoiceById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const invoice = await prisma.invoice.findUnique({
+            where: { id },
+            include: {
+                school: {
+                    select: {
+                        id: true,
+                        schoolName: true,
+                        adminName: true,
+                        adminEmail: true,
+                        address: true,
+                    }
+                }
+            }
+        });
+
+        if (!invoice) {
+            return res.status(404).json({ success: false, message: 'Invoice not found' });
+        }
+
+        res.json({
+            success: true,
+            data: { invoice },
+        });
+    } catch (error) {
+        console.error('Get invoice error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch invoice' });
+    }
+};
+
+/**
+ * Get all invoices (with filtering)
+ */
+const getAllInvoices = async (req, res) => {
+    try {
+        const { status, page = 1, limit = 50, search } = req.query;
+
+        const where = {};
+        if (status) where.status = status;
+        if (search) {
+            where.OR = [
+                { invoiceNumber: { contains: search, mode: 'insensitive' } },
+                { school: { schoolName: { contains: search, mode: 'insensitive' } } }
+            ];
+        }
+
+        const [invoices, total] = await Promise.all([
+            prisma.invoice.findMany({
+                where,
+                skip: (parseInt(page) - 1) * parseInt(limit),
+                take: parseInt(limit),
+                include: {
+                    school: {
+                        select: {
+                            id: true,
+                            schoolName: true,
+                            subdomain: true
+                        }
+                    }
+                },
+                orderBy: { createdAt: 'desc' },
+            }),
+            prisma.invoice.count({ where }),
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                invoices,
+                pagination: {
+                    total,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    totalPages: Math.ceil(total / parseInt(limit)),
+                },
+            },
+        });
+    } catch (error) {
+        console.error('Get invoices error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch invoices' });
+    }
+};
+
 module.exports = {
     generateMonthlyInvoices,
     processInvoicePayment,
     handleFailedPayments,
     changeSubscriptionPlan,
     cancelSubscription,
+    createInvoice,
+    getInvoiceById,
+    getAllInvoices,
 };

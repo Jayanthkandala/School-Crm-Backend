@@ -4,6 +4,8 @@ const schoolsController = require('./schools.controller');
 const subscriptionsController = require('./subscriptions.controller');
 const supportRoutes = require('./support.routes');
 const ownerRoutes = require('./owner.routes');
+const usersController = require('./platform-users.controller');
+const billingController = require('./billing.controller');
 const { authenticatePlatformUser } = require('../../middleware/auth.middleware');
 const { requirePlatformAdmin, requireOwner, requirePlatformRole, PLATFORM_ROLES } = require('../../middleware/permission.middleware');
 
@@ -345,5 +347,22 @@ router.get('/settings', requireOwner, settingsController.getSettings);
  *         description: Settings updated
  */
 router.put('/settings', requireOwner, settingsController.updateSettings);
+
+// ============================================
+// PLATFORM USERS (Team)
+// ============================================
+
+router.get('/users', requirePlatformAdmin, usersController.getAllUsers);
+router.post('/users', requirePlatformAdmin, usersController.createUser);
+router.put('/users/:id', requirePlatformAdmin, usersController.updateUser);
+router.delete('/users/:id', requirePlatformAdmin, usersController.deleteUser);
+
+// ============================================
+// BILLING & INVOICES
+// ============================================
+
+router.get('/invoices', requirePlatformRole(PLATFORM_ROLES.OWNER, PLATFORM_ROLES.ADMIN, PLATFORM_ROLES.FINANCE), billingController.getAllInvoices);
+router.post('/invoices', requirePlatformRole(PLATFORM_ROLES.OWNER, PLATFORM_ROLES.ADMIN, PLATFORM_ROLES.FINANCE), billingController.createInvoice);
+router.get('/invoices/:id', requirePlatformRole(PLATFORM_ROLES.OWNER, PLATFORM_ROLES.ADMIN, PLATFORM_ROLES.FINANCE), billingController.getInvoiceById);
 
 module.exports = router;
